@@ -104,34 +104,35 @@ async def get_date_from_html(url: str) -> str:
 # Отфильтровать ссылки по дате
 # -----------------------------
 def get_links_for_period(start_date: date, links: list) -> list:
-    """
-    Отбирает ссылки из ``links`` с датой не раньше ``start_date``.
+    """Возвращает ссылки из ``links`` не раньше ``start_date``.
 
     Parameters
     ----------
     start_date: date
-        Дата, начиная с которой нужно включать ссылки.
+        Нижняя граница даты.
     links: list
-        Список словарей со ссылками и полем ``date_str``.
+        Список словарей, содержащих URL и строку с датой
+        (``date_str`` или ``date``).
 
     Returns
     -------
     list
-        Список URL, удовлетворяющих условию.
+        URLs, удовлетворяющие условию.
     """
 
-    result = []
+    filtered = []
 
     for link in links:
+        date_str = link.get("date_str") or link.get("date", "")
+        # В строке может присутствовать время, поэтому берём последнюю часть
+        date_part = date_str.split()[-1]
         try:
-            date_str = link.get("date_str", "")
-            # В строке может присутствовать время, поэтому берём последнюю часть
-            date_part = date_str.split()[-1]
             link_date = datetime.strptime(date_part, "%d.%m.%Y").date()
+        except Exception:
+            print(f"Ошибка при обработке даты ссылки: {date_str}")
+            continue
 
-            if link_date >= start_date:
-                result.append(link["url"])
-        except Exception as e:
-            print(f"Ошибка при обработке даты ссылки: {e}")
+        if link_date >= start_date:
+            filtered.append(link["url"])
 
-    return result
+    return filtered
