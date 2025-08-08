@@ -1,11 +1,18 @@
 import re
 import ssl
-import certifi
-import aiohttp
 import json
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime, date
 from pathlib import Path
+
+try:
+    import certifi
+    import aiohttp
+    from bs4 import BeautifulSoup
+except ImportError:  # pragma: no cover - optional dependencies
+    certifi = None
+    aiohttp = None
+    BeautifulSoup = None
 
 LINK_DATA_FILE = Path("link_data.json")
 
@@ -81,9 +88,10 @@ def parse_date_from_string(date_str: str) -> datetime:
 # -----------------------------
 # Получить дату из HTML страницы (Silpo, Fora)
 # -----------------------------
-from bs4 import BeautifulSoup  # если ещё не импортирован вверху
-
 async def get_date_from_html(url: str) -> str:
+    if not all([aiohttp, certifi, BeautifulSoup]):
+        raise ImportError("aiohttp, certifi и bs4 требуются для обработки HTML")
+
     ssl_context = ssl.create_default_context(cafile=certifi.where())
     headers = {
         "User-Agent": "Mozilla/5.0"
@@ -111,13 +119,15 @@ async def get_date_from_html(url: str) -> str:
 # -----------------------------
 # Отфильтровать ссылки по дате
 # -----------------------------
-def get_links_for_period(start_date: date, links: list) -> list:
-    """Возвращает ссылки из ``links`` не раньше ``start_date``.
+def get_links_for_period(start_date: date, end_date: date, links: list) -> list:
+    """Возвращает ссылки из ``links`` в диапазоне ``[start_date, end_date]``.
 
     Parameters
     ----------
     start_date: date
         Нижняя граница даты.
+    end_date: date
+        Верхняя граница даты.
     links: list
         Список словарей, содержащих URL и строку с датой
         (``date_str`` или ``date``).
@@ -140,7 +150,7 @@ def get_links_for_period(start_date: date, links: list) -> list:
             print(f"Ошибка при обработке даты ссылки: {date_str}")
             continue
 
-        if link_date >= start_date:
+        if start_date <= link_date <= end_date:
             filtered.append(link["url"])
 
     return filtered

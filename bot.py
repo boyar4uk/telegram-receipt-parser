@@ -91,20 +91,26 @@ async def handle_period(callback: CallbackQuery):
     now = datetime.now()
 
     if period == "today":
-        start_date = now.date()
+        start_date = end_date = now.date()
     elif period == "yesterday":
-        start_date = (now - timedelta(days=1)).date()
+        day = (now - timedelta(days=1)).date()
+        start_date = end_date = day
     elif period == "last_week":
-        start_date = (now - timedelta(days=7)).date()
+        current_week_start = (now - timedelta(days=now.weekday())).date()
+        start_date = current_week_start - timedelta(days=7)
+        end_date = current_week_start - timedelta(days=1)
     elif period == "last_month":
-        start_date = (now - timedelta(days=30)).date()
+        first_day_this_month = now.replace(day=1).date()
+        last_day_prev_month = first_day_this_month - timedelta(days=1)
+        start_date = last_day_prev_month.replace(day=1)
+        end_date = last_day_prev_month
     else:
         return await callback.message.answer("❌ Неверный период")
 
     await callback.message.answer("⏳ Начинаю обработку чеков...")
 
     link_data = load_link_data()
-    selected_links = get_links_for_period(start_date, link_data)
+    selected_links = get_links_for_period(start_date, end_date, link_data)
 
     # Создаём словарь {url: entry} без копирования объектов,
     # чтобы обновления статуса отражались в исходном списке
