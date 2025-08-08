@@ -106,22 +106,31 @@ async def handle_period(callback: CallbackQuery):
     link_data = load_link_data()
     selected_links = get_links_for_period(start_date, link_data)
 
+    # Создаём словарь {url: entry} без копирования объектов,
+    # чтобы обновления статуса отражались в исходном списке
+    link_map = {entry["url"]: entry for entry in link_data}
+
     total = len(selected_links)
     success = 0
     pending = 0
 
     for url in selected_links:
+        entry = link_map.get(url)
+        if entry is None:
+            continue
         try:
             result = await parse_link(url)
             if result:
-                link_data[url]["status"] = "done"
+                entry["status"] = "done"
                 success += 1
             else:
-                link_data[url]["status"] = "pending"
+                entry["status"] = "pending"
                 pending += 1
-                await callback.message.answer(f"🕓 Ссылка ещё не сформирована: {url}\nДобавлена в отложенные")
+                await callback.message.answer(
+                    f"🕓 Ссылка ещё не сформирована: {url}\nДобавлена в отложенные"
+                )
         except Exception as e:
-            link_data[url]["status"] = "pending"
+            entry["status"] = "pending"
             pending += 1
             await callback.message.answer(f"⚠️ Ошибка при обработке: {url}\n{e}")
 
