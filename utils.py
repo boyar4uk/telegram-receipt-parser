@@ -32,6 +32,15 @@ def is_duplicate(url: str) -> bool:
     return any(link["url"] == url for link in data)
 
 # -----------------------------
+# Запись всех ссылок в файл
+# -----------------------------
+def write_link_data(data: list):
+    """Перезаписывает ``link_data.json`` содержимым ``data``."""
+    with open(LINK_DATA_FILE, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+# -----------------------------
 # Сохранить ссылку с данными
 # -----------------------------
 def save_link_data(new_link: dict):
@@ -40,8 +49,7 @@ def save_link_data(new_link: dict):
         with open(LINK_DATA_FILE, "r") as f:
             all_data = json.load(f)
     all_data.append(new_link)
-    with open(LINK_DATA_FILE, "w") as f:
-        json.dump(all_data, f, indent=2, ensure_ascii=False)
+    write_link_data(all_data)
 
 
 # -----------------------------

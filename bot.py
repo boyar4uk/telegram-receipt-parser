@@ -13,7 +13,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from utils import (
     detect_link_type,
     load_link_data,
-    save_link_data,
+    write_link_data,
     get_date_from_url,
     get_date_from_html,
     get_links_for_period,
@@ -68,7 +68,7 @@ async def handle_link(message: Message):
     }
    
     data.append(link_data)
-    save_link_data(link_data)
+    write_link_data(data)
 
     await message.answer(f"✅ Ссылка добавлена!\nТип: {link_type}\nДата: {date_str}")
 
@@ -134,7 +134,7 @@ async def handle_period(callback: CallbackQuery):
             pending += 1
             await callback.message.answer(f"⚠️ Ошибка при обработке: {url}\n{e}")
 
-    save_link_data(link_data)
+    write_link_data(link_data)
 
     await callback.message.answer(
         f"✅ Обработано: {success} чеков\n🕓 Добавлено в отложенные: {pending}\n📦 Всего за период: {total}"
