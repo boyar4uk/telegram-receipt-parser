@@ -3,6 +3,7 @@ import re
 import pandas as pd
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
+from utils import load_link_data
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -10,7 +11,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-LINKS_FILE = "links.txt"
 OUTPUT_FILE = "Result.xlsx"
 all_items = []
 
@@ -22,22 +22,6 @@ def setup_driver():
     options.add_argument("--disable-dev-shm-usage")
     driver = webdriver.Chrome(options=options)
     return driver
-
-
-def read_links():
-    """Читает и чистит ссылки из файла"""
-    if not os.path.exists(LINKS_FILE):
-        print(f"[ERROR] Файл {LINKS_FILE} не найден")
-        return []
-
-    with open(LINKS_FILE, "r", encoding="utf-8") as f:
-        links = [line.strip() for line in f if line.strip()]
-
-    unique_links = list(dict.fromkeys(links))  # сохраняем порядок, убираем дубли
-    print(f"[INFO] Загружено {len(unique_links)} уникальных ссылок")
-    return unique_links
-
-
 def get_fiscal_link_from_store(driver, store_url):
     """Открывает страницу Сильпо/Фора и берёт ссылку на фискальный чек"""
     print(f"[INFO] Открываю страницу магазина: {store_url}")
@@ -155,7 +139,8 @@ def parse_fiscal_receipt(driver, fiscal_url, check_num):
 
 
 def main():
-    links = read_links()
+    link_entries = load_link_data()
+    links = [entry["url"] for entry in link_entries]
     if not links:
         return
 
@@ -239,10 +224,10 @@ def parse_and_save_one(url: str, check_number: int) -> bool:
 # 👇 вот это обязательно для Telegram-бота
 async def parse_link(url: str) -> bool:
     try:
-        with open("links.txt", "r", encoding="utf-8") as f:
-            links = [line.strip() for line in f if line.strip()]
+        data = load_link_data()
+        links = [entry["url"] for entry in data]
         if url not in links:
-            raise ValueError("Ссылка не найдена в links.txt")
+            raise ValueError("Ссылка не найдена в link_data.json")
         check_number = links.index(url) + 1
         return parse_and_save_one(url, check_number)
     except Exception as e:
