@@ -4,7 +4,7 @@ import certifi
 import aiohttp
 import json
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime, timedelta
+from datetime import datetime, date
 from pathlib import Path
 
 LINK_DATA_FILE = Path("link_data.json")
@@ -101,35 +101,36 @@ async def get_date_from_html(url: str) -> str:
 
 
 # -----------------------------
-# Отфильтровать ссылки по периоду
+# Отфильтровать ссылки по дате
 # -----------------------------
-def get_links_for_period(period: str) -> list:
-    all_links = load_link_data()
-    today = datetime.today()
+def get_links_for_period(start_date: date, links: list) -> list:
+    """
+    Отбирает ссылки из ``links`` с датой не раньше ``start_date``.
 
-    if period == "Сегодня":
-        start_date = today.replace(hour=0, minute=0, second=0, microsecond=0)
-    elif period == "Вчера":
-        start_date = (today - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = today.replace(hour=0, minute=0, second=0, microsecond=0)
-    elif period == "Прошлая неделя":
-        start_date = today - timedelta(days=7)
-    elif period == "Прошлый месяц":
-        start_date = today - timedelta(days=30)
-    else:
-        return []
+    Parameters
+    ----------
+    start_date: date
+        Дата, начиная с которой нужно включать ссылки.
+    links: list
+        Список словарей со ссылками и полем ``date_str``.
+
+    Returns
+    -------
+    list
+        Список URL, удовлетворяющих условию.
+    """
 
     result = []
 
-    for link in all_links:
+    for link in links:
         try:
-            link_date = parse_date_from_string(link["date"].split()[0])
-            if period == "Вчера":
-                if start_date <= link_date < end_date:
-                    result.append(link)
-            else:
-                if link_date >= start_date:
-                    result.append(link)
+            date_str = link.get("date_str", "")
+            # В строке может присутствовать время, поэтому берём последнюю часть
+            date_part = date_str.split()[-1]
+            link_date = datetime.strptime(date_part, "%d.%m.%Y").date()
+
+            if link_date >= start_date:
+                result.append(link["url"])
         except Exception as e:
             print(f"Ошибка при обработке даты ссылки: {e}")
 
